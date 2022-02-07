@@ -23,8 +23,8 @@ do
     #validar si la cedula es valida
     while IFS= read -r line   # recorremos linea a linea el archivo $asistencia
     do
-
-awk  {cedula = $line # tomamos el valor de la cedula
+      awk '{            
+            cedula = $line # tomamos el valor de la cedula
             if(length(cedula)==10){
                 dig_region=substr(cedula,0,2)
                 if (int(dig_region) >=1 && int (dig_region) <=24){
@@ -65,8 +65,7 @@ awk  {cedula = $line # tomamos el valor de la cedula
                     print "Numero de cedula no pertenece al Ecuador"
                 }
             }else{ print (cedula ": Numero de cedula Invalida")
-                 print "la cedula ingresada no tienes 10 digito"}
-        }
+                 print "la cedula ingresada no tienes 10 digito"}}'
 
     done < $asistencia
 fecha=${asistencia:3:10} # Obtenemos la fecha del archivo
