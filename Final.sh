@@ -1,38 +1,23 @@
-!/usr/bin/bash
-# Eliminar los exapcio en blanco y cambiar por _
-for f in *.png;  do mv "$f" `echo $f | tr ' ' '_'`;done
-# Recorre todos los archivos de tipo png del  directorio actual 
-
-for archivo in *.png 
+#!/usr/bin/bash
+for imag in *.png 
 do
-    echo "Convirtiendo $archivo"
-    #  Recortar la imagen
-    convert "$archivo" -crop 700x980+1500+90  "convert_$archivo"
+    convert "$imag" -crop 700x980+1500+90  "convert_$imag"
 
-    echo "Buscando cedulas"
-    #Tesseract para poder obtener las cedulas de las imagenes
-    tesseract "convert_$archivo"  output -l spa  digits
+    tesseract "convert_$imag"  output -l spa  digits
 
-    asistencia=${archivo%png}"txt"
-    egrep -o "[0-9]{9,10}" output.txt | sort | uniq > $asistencia  # aplicamos el filt>
-    # para solo obtener las cedulas necesarias  filtradas
-    rm -f "convert_$archivo"
+    nced=${imag%png}"txt"
+    egrep -o "[0-9]{9,10}" output.txt | sort | uniq > $nced
+    rm -f "convert_$imag"
 
-    #echo "Archivo $asistencia" # imprimimos el archivo con las cedulas filtradas de c>
-
-    #validar si la cedula es valida
-    while IFS= read -r line   # recorremos linea a linea el archivo $asistencia
-    do
-      awk '{            
-            cedula = $line # tomamos el valor de la cedula
+    while IFS= read -r line
+      do
+   awk  '{
+            cedula = $line
             if(length(cedula)==10){
                 dig_region=substr(cedula,0,2)
                 if (int(dig_region) >=1 && int (dig_region) <=24){
                     ult_dig=int(substr(cedula,10,1))
-                    #agrupar los numeros pares
-                    pares=int(substr(cedula,2,1))+int(substr(cedula,4,1))+int(substr(c>
-                    #print(pares)           
-                    #agrupamos los impares y le multiplicamos por un factor de 2 si la>
+                    pares=int(substr(cedula,2,1))+int(substr(cedula,4,1))+int(substr(cedula,6,1))+int(substr(cedula,8,1))
                     numero1=int(substr(cedula,1,1))
                     numero1=(numero1*2)
                     if(numero1 >9) { numero1=(numero1-9)}
@@ -49,7 +34,6 @@ do
                     numero9=numero9*2
                     if(numero9 >9) {numero9=(numero9-9)}
                     impares=numero1+numero3+numero5+numero7+numero9
-                    #suma total
                     total=(pares+impares)
                     totstr=total+""
                     prim_dig=substr(totstr,0,1)
@@ -65,32 +49,28 @@ do
                     print "Numero de cedula no pertenece al Ecuador"
                 }
             }else{ print (cedula ": Numero de cedula Invalida")
-                 print "la cedula ingresada no tienes 10 digito"}}'
+                 print "la cedula ingresada no tienes 10 digito"}
+        }'
 
-    done < $asistencia
-fecha=${asistencia:3:10} # Obtenemos la fecha del archivo
-    echo "$fecha" > listado_tmp.csv
+    done < $nced
 
-    while IFS= read -r line   # Recorre cada linea de listado_tmp.CSV
-    do
-        #echo "$line"
-        c=$(echo $line | cut -f2 -d,)  # aqui obtenemos la cedula del archivo CSV
+    fecha=${nced:3:10}
+    echo "$fecha" > listado_tmp.csv 
+        while IFS= read -r line
+        do
 
-        asiste=$(grep -o $c $asistencia | wc -w) 
-        # Validar si el estudiante asisitio
-        if [ $asiste = 0 ]; then
-            echo "NO" >> listado_tmp.csv # Escribe la asistencia del estudiante
-        else
-            echo "SI" >> listado_tmp.csv
-        fi
+        c=$(echo $line | cut -f2 -d,) 
+        asiste=$(grep -o $c $nced | wc -w) 
+if [ $asiste = 0 ]; then
+        echo "NO" >> listado_tmp.csv
+else
+        echo "SI" >> listado_tmp.csv
+fi 
+done <<< $(tail -n+2 lista-so.csv)
+cp lista-so.csv copia.csv
+paste -d, copia.csv listado_tmp.csv > lista-so.csv    
 
-    done <<< $(tail -n+2 lista-so.csv)  # Del archivo original toma desde  la segunda >
-    # y enviamos el archivo para recorrerlo linea a linea
-
-    cp lista-so.csv copia.csv # Hacemos una copia del archivo Csv original para agrega>
-    paste -d, copia.csv listado_tmp.csv > lista-so.csv    
-    # Redirecciona al archivo original
-    echo "fecha toma de asistencia :" $fecha
-
-done  # fin del bucle for de todo el script
+echo "fecha toma de asistencia :" $fecha 
+done  
+echo " Se acabo de tomar lista por completo"
 rm -Rf output.txt
